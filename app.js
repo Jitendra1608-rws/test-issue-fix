@@ -18,9 +18,9 @@ app.set('views', path.join(__dirname, 'views'));
 
 /** Safe math parser - no eval/Function, only + - * / ( ) and numbers */
 function safeEvalMath(expr) {
-  if (typeof expr !== 'string') return NaN;
-  const sanitized = expr.replace(/[^\d\s+\-*/().]/g, '');
-  if (sanitized.length === 0) return NaN;
+  if (typeof expr !== 'string') return Number.NaN;
+  const sanitized = expr.replaceAll(/[^\d\s+\-*/().]/g, '');
+  if (sanitized.length === 0) return Number.NaN;
   try {
     const tokens = sanitized.match(/\d+\.?\d*|[+\-*/()]/g) || [];
     let i = 0;
@@ -53,7 +53,7 @@ function safeEvalMath(expr) {
     }
     return parseExpr();
   } catch {
-    return NaN;
+    return Number.NaN;
   }
 }
 
@@ -83,6 +83,7 @@ function checkAuth(req, res, next) {
     req.user = jwt.verify(token, config.jwtSecret);
     next();
   } catch (err) {
+    console.error('JWT verify failed:', err.message);
     res.status(401).send('Invalid token');
   }
 }

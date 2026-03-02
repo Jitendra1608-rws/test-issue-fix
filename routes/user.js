@@ -16,6 +16,7 @@ function checkAuth(req, res, next) {
     req.user = jwt.verify(token, config.jwtSecret);
     next();
   } catch (err) {
+    console.error('JWT verify failed:', err.message);
     res.status(401).send('Invalid token');
   }
 }

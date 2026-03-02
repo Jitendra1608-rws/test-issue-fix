@@ -11,7 +11,8 @@ function getValidUsers() {
   if (!raw) return {};
   try {
     return JSON.parse(raw);
-  } catch {
+  } catch (err) {
+    console.error('AUTH_USERS parse failed:', err.message);
     return {};
   }
 }
@@ -26,6 +27,7 @@ function checkAuth(req, res, next) {
     req.user = jwt.verify(token, config.jwtSecret);
     next();
   } catch (err) {
+    console.error('JWT verify failed:', err.message);
     res.status(401).send('Invalid token');
   }
 }
