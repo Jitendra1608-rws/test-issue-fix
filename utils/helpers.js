@@ -19,7 +19,7 @@ function safeMerge(defaults, userInput) {
   const result = { ...defaults };
   for (const key of Object.keys(userInput)) {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
-    if (Object.prototype.hasOwnProperty.call(userInput, key)) {
+    if (Object.hasOwn(userInput, key)) {
       result[key] = userInput[key];
     }
   }
