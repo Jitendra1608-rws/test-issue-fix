@@ -1,23 +1,29 @@
 /**
- * BUGGY HELPERS - Duplicate logic, unsafe defaults, deprecated APIs
+ * Shared helpers: processUser, safeMerge, sanitization, parseId, toBase64.
  */
-const _ = require('lodash');
 
-// Duplicate of processUser from routes/api.js and routes/user.js
 function processUser(user) {
   if (!user) return null;
-  const processed = {};
-  processed.id = user.id;
-  processed.name = user.name;
-  processed.email = user.email;
-  processed.role = user.role;
-  processed.createdAt = new Date();
-  return processed;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    createdAt: new Date(),
+  };
 }
 
-// SECURITY: Defaults to merge can lead to prototype pollution with user input
-function mergeConfig(defaults, userInput) {
-  return _.merge({}, defaults, userInput);
+/** Merge defaults with user input using only own enumerable keys (avoids prototype pollution). */
+function safeMerge(defaults, userInput) {
+  if (userInput == null || typeof userInput !== 'object') return { ...defaults };
+  const result = { ...defaults };
+  for (const key of Object.keys(userInput)) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+    if (Object.prototype.hasOwnProperty.call(userInput, key)) {
+      result[key] = userInput[key];
+    }
+  }
+  return result;
 }
 
 function toBase64(str) {
@@ -28,4 +34,16 @@ function parseId(id) {
   return Number.parseInt(id, 10);
 }
 
-module.exports = { processUser, mergeConfig, toBase64, parseId };
+/** Escape HTML to prevent XSS when reflecting user input. */
+function sanitizeForHtml(str) {
+  if (str == null) return '';
+  const s = String(str);
+  return s
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+module.exports = { processUser, safeMerge, toBase64, parseId, sanitizeForHtml };

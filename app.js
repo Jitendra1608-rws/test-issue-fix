@@ -1,11 +1,7 @@
-/**
- * App - secrets from env, safe calc, no eval
- */
 const express = require('express');
 const path = require('node:path');
 const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const config = require('./config');
+const { sanitizeForHtml } = require('./utils/helpers');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -73,28 +69,14 @@ app.get('/encode', (req, res) => {
   res.send({ encoded: buf.toString('base64') });
 });
 
-function checkAuth(req, res, next) {
-  const token = req.headers.authorization || req.cookies?.token;
-  if (!token) {
-    res.status(401).send('Unauthorized');
-    return;
-  }
-  try {
-    req.user = jwt.verify(token, config.jwtSecret);
-    next();
-  } catch (err) {
-    console.error('JWT verify failed:', err.message);
-    res.status(401).send('Invalid token');
-  }
-}
-
 // Routes
 app.use('/api', require('./routes/api'));
 app.use('/auth', require('./routes/auth'));
 app.use('/user', require('./routes/user'));
 
 app.get('/', (req, res) => {
-  res.render('index', { title: 'Buggy App', userInput: req.query.q || '' });
+  const userInput = sanitizeForHtml(req.query.q ?? '');
+  res.render('index', { title: 'Test App', userInput });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
