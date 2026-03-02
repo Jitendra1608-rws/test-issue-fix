@@ -1,20 +1,21 @@
 /**
- * BUGGY USER ROUTES - Duplicate code, no rate limiting, same auth again
+ * User routes - auth via shared config
  */
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
+const config = require('../config');
 
-const JWT_SECRET = 'my-super-secret-key-12345';  // Same secret again
-
-// Duplicate auth logic - third copy
 function checkAuth(req, res, next) {
-  const token = req.headers.authorization || req.cookies.token;
-  if (!token) return res.status(401).send('Unauthorized');
+  const token = req.headers.authorization || req.cookies?.token;
+  if (!token) {
+    res.status(401).send('Unauthorized');
+    return;
+  }
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, config.jwtSecret);
     next();
-  } catch (e) {
+  } catch (err) {
     res.status(401).send('Invalid token');
   }
 }

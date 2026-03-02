@@ -20,14 +20,12 @@ function mergeConfig(defaults, userInput) {
   return _.merge({}, defaults, userInput);
 }
 
-// Deprecated: Buffer alloc
 function toBase64(str) {
-  return new Buffer(str).toString('base64');  // Use Buffer.from(str).toString('base64')
+  return Buffer.from(str, 'utf8').toString('base64');
 }
 
-// No input validation - can throw or behave unexpectedly
 function parseId(id) {
-  return parseInt(id, 10);  // NaN if id is not a number
+  return Number.parseInt(id, 10);
 }
 
 module.exports = { processUser, mergeConfig, toBase64, parseId };

@@ -1,27 +1,31 @@
 /**
- * BUGGY AUTH - Hardcoded credentials, weak JWT, duplicate auth logic
+ * Auth - credentials and JWT secret from env
  */
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
+const config = require('../config');
 
-const JWT_SECRET = 'my-super-secret-key-12345';  // Duplicate hardcoded secret
-
-// SECURITY: Hardcoded credentials - never do this
-const VALID_USERS = {
-  admin: 'password123',
-  user: 'user123',
-  test: 'test'
-};
-
-// Duplicate auth check (same logic as app.js checkAuth)
-function checkAuth(req, res, next) {
-  const token = req.headers.authorization || req.cookies.token;
-  if (!token) return res.status(401).send('Unauthorized');
+function getValidUsers() {
+  const raw = process.env.AUTH_USERS;
+  if (!raw) return {};
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function checkAuth(req, res, next) {
+  const token = req.headers.authorization || req.cookies?.token;
+  if (!token) {
+    res.status(401).send('Unauthorized');
+    return;
+  }
+  try {
+    req.user = jwt.verify(token, config.jwtSecret);
     next();
-  } catch (e) {
+  } catch (err) {
     res.status(401).send('Invalid token');
   }
 }
@@ -31,14 +35,14 @@ router.post('/login', (req, res) => {
   if (!username || !password) {
     return res.status(400).send('Missing credentials');
   }
-  if (VALID_USERS[username] === password) {
-    // SECURITY: No expiry, weak secret
+  const validUsers = getValidUsers();
+  if (validUsers[username] === password) {
     const token = jwt.sign(
       { username, role: username === 'admin' ? 'admin' : 'user' },
-      JWT_SECRET,
-      { expiresIn: '9999d' }  // Essentially no expiry
+      config.jwtSecret,
+      { expiresIn: process.env.JWT_EXPIRY || '1d' }
     );
-    res.cookie('token', token, { httpOnly: false, secure: false });
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
     return res.json({ token, success: true });
   }
   res.status(401).send('Invalid credentials');

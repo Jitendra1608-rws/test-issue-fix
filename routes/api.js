@@ -11,12 +11,9 @@ const users = [
   { id: 2, name: 'Bob', email: 'bob@test.com', role: 'admin' }
 ];
 
-// SECURITY: SQL Injection vulnerability (concatenating user input)
 router.get('/user', (req, res) => {
   const id = req.query.id;
-  // Simulated SQL - NEVER do this with real DB
-  const query = `SELECT * FROM users WHERE id = ${id}`;
-  const user = users.find(u => u.id == id);
+  const user = users.find(u => String(u.id) === String(id));
   res.json(user || { error: 'Not found' });
 });
 

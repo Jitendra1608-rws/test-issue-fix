@@ -1,19 +1,14 @@
 /**
- * BUGGY APP - Intentional security issues and bad practices
- * - Hardcoded secrets, eval(), deprecated Buffer, no input validation
+ * App - secrets from env, safe calc, no eval
  */
 const express = require('express');
-const path = require('path');
+const path = require('node:path');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
+const config = require('./config');
 
 const app = express();
-const PORT = 3000;
-
-// SECURITY: Hardcoded secret keys and credentials
-const JWT_SECRET = 'my-super-secret-key-12345';
-const DB_PASSWORD = 'admin123';
-const API_KEY = 'sk_live_abc123xyz789';
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -21,32 +16,73 @@ app.use(cookieParser());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// SECURITY: Using eval with user input (Code Injection)
+/** Safe math parser - no eval/Function, only + - * / ( ) and numbers */
+function safeEvalMath(expr) {
+  if (typeof expr !== 'string') return NaN;
+  const sanitized = expr.replace(/[^\d\s+\-*/().]/g, '');
+  if (sanitized.length === 0) return NaN;
+  try {
+    const tokens = sanitized.match(/\d+\.?\d*|[+\-*/()]/g) || [];
+    let i = 0;
+    function parseExpr() {
+      let left = parseTerm();
+      while (tokens[i] === '+' || tokens[i] === '-') {
+        const op = tokens[i++];
+        const right = parseTerm();
+        left = op === '+' ? left + right : left - right;
+      }
+      return left;
+    }
+    function parseTerm() {
+      let left = parseFactor();
+      while (tokens[i] === '*' || tokens[i] === '/') {
+        const op = tokens[i++];
+        const right = parseFactor();
+        left = op === '*' ? left * right : left / right;
+      }
+      return left;
+    }
+    function parseFactor() {
+      if (tokens[i] === '(') {
+        i++;
+        const v = parseExpr();
+        i++;
+        return v;
+      }
+      return Number(tokens[i++]);
+    }
+    return parseExpr();
+  } catch {
+    return NaN;
+  }
+}
+
 app.get('/calc', (req, res) => {
   const expr = req.query.expression || '1+1';
-  try {
-    const result = eval(expr);  // DANGEROUS - never use eval with user input
-    res.send({ result });
-  } catch (e) {
-    res.status(500).send({ error: e.message });
+  const result = safeEvalMath(expr);
+  if (Number.isNaN(result)) {
+    res.status(400).send({ error: 'Invalid expression' });
+    return;
   }
+  res.send({ result });
 });
 
-// SECURITY: Deprecated Buffer constructor (buffer-alloc)
 app.get('/encode', (req, res) => {
   const text = req.query.text || 'hello';
-  const buf = new Buffer(text, 'utf8');  // Deprecated - use Buffer.from()
+  const buf = Buffer.from(text, 'utf8');
   res.send({ encoded: buf.toString('base64') });
 });
 
-// Duplicate auth logic (repeated in routes/auth.js and routes/user.js)
 function checkAuth(req, res, next) {
-  const token = req.headers.authorization || req.cookies.token;
-  if (!token) return res.status(401).send('Unauthorized');
+  const token = req.headers.authorization || req.cookies?.token;
+  if (!token) {
+    res.status(401).send('Unauthorized');
+    return;
+  }
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, config.jwtSecret);
     next();
-  } catch (e) {
+  } catch (err) {
     res.status(401).send('Invalid token');
   }
 }
@@ -62,7 +98,6 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-  console.log('DB Password:', DB_PASSWORD);  // SECURITY: Logging secrets
 });
 
 module.exports = app;

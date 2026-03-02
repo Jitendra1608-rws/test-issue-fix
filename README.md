@@ -1,43 +1,31 @@
-# Buggy Test App (Intentional Issues)
+# Test App (Issues Resolved)
 
-A Node.js app with **intentional** bugs for testing static analysis tools (SonarQube, ESLint security, etc.).
+Node.js app with security and code-quality issues addressed for SonarCloud/static analysis.
 
-## ⚠️ Do NOT use in production
+## Setup
 
-### Security issues
+1. Copy `.env.example` to `.env` and set values (never commit `.env`).
+2. Required env vars:
+   - `JWT_SECRET` – secret for signing JWTs
+   - `MONGODB_URI` or `DATABASE_URL` – DB connection string
+   - Optional: `AUTH_USERS` – JSON object `{"username":"password",...}` for `/auth/login`
+   - Optional: `JWT_EXPIRY`, `PORT`, `API_KEY`, `NODE_ENV`
 
-| Location | Issue |
-|----------|--------|
-| `app.js` | Hardcoded `JWT_SECRET`, `DB_PASSWORD`, `API_KEY`; `eval(req.query.expression)` (code injection); `new Buffer()` (deprecated); logging secrets |
-| `app.js`, `routes/auth.js`, `routes/user.js` | Same `checkAuth` logic duplicated 3 times; same hardcoded secret in multiple files |
-| `routes/api.js` | SQL injection pattern (concatenating `req.query.id`); lodash `_.merge` prototype pollution risk; unsanitized `q` in response (XSS) |
-| `routes/auth.js` | Hardcoded user/passwords; JWT with very long expiry; cookie without `secure`/`httpOnly` |
-| `lib/db.js` | Hardcoded connection string; `buildUserQuery` builds query via string concatenation (injection) |
-| `lib/fetch.js` | Deprecated `request`; SSRF (user-controlled URL); no timeout or TLS validation |
-| `utils/helpers.js` | `new Buffer(str)`; `_.merge` with user input; duplicate `processUser` |
-| `views/index.ejs` | User input in HTML/script without escaping (XSS) |
-
-### Duplicate code
-
-- `processUser()` in `routes/api.js`, `routes/user.js`, `utils/helpers.js`
-- `checkAuth()` in `app.js`, `routes/auth.js`, `routes/user.js`
-- `JWT_SECRET` repeated in `app.js`, `routes/auth.js`, `routes/user.js`
-
-### Old / vulnerable dependencies (package.json)
-
-- `lodash@4.17.15` – prototype pollution (e.g. CVE-2019-10744)
-- `express@4.16.0` – older version; upgrade for security fixes
-- `mongoose@5.7.0` – older version
-- `request@2.88.0` – deprecated, unmaintained
-- `node-sass@4.14.1` – deprecated; use `sass`
-- `ejs@2.7.4` – older; upgrade for fixes
-- `jsonwebtoken@8.5.0` – check for known CVEs
-
-### Run
+## Run
 
 ```bash
 npm install
 npm start
 ```
 
-Use this project only for testing analyzers and learning what to avoid.
+## Fixes applied
+
+- **Secrets**: All passwords and API keys moved to environment variables via `config.js`.
+- **eval**: Replaced with a safe math parser (no dynamic code execution).
+- **Buffer**: Replaced `new Buffer()` with `Buffer.from()`.
+- **path**: Using `node:path` instead of `path`.
+- **Exceptions**: Auth `catch` blocks handle errors and return 401 (no empty catch).
+- **Logging**: Removed logging of secrets.
+- **api.js**: Removed unused `query` variable; user lookup without string concatenation.
+- **lib/db.js**: Connection string from config; parameterized-style query building.
+- **utils/helpers.js**: `parseInt` replaced with `Number.parseInt`; `Buffer.from` in `toBase64`.
