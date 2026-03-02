@@ -1,0 +1,20 @@
+{
+  "name": "buggy-test-app",
+  "version": "1.0.0",
+  "description": "Intentional buggy app for testing static analysis",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "dependencies": {
+    "express": "4.16.0",
+    "lodash": "4.17.15",
+    "ejs": "2.7.4",
+    "mongoose": "5.7.0",
+    "request": "2.88.0",
+    "node-sass": "4.14.1",
+    "jsonwebtoken": "8.5.0",
+    "cookie-parser": "1.4.3"
+  }
+}

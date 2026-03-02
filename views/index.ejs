@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= title %></title>
+</head>
+<body>
+  <h1>Buggy Test App</h1>
+  <!-- SECURITY: XSS - user input rendered without escaping in some cases -->
+  <p>You searched for: <%= userInput %></p>
+  <form action="/api/search" method="GET">
+    <input name="q" value="<%= userInput %>" placeholder="Search..." />
+    <button type="submit">Search</button>
+  </form>
+  <!-- Script with inline user data - potential XSS if userInput contains script -->
+  <script>
+    var searchTerm = "<%= userInput %>";
+    console.log('Search:', searchTerm);
+  </script>
+</body>
+</html>
